@@ -64,6 +64,11 @@ On jenkins server:
 ### Preparation for pipeline
 
 1. Create new sparta app public repo, including a `dev` branch.
+
+    ```bash
+    git checkout -b dev
+    ```
+
 2. Generate ssh keypair on your local machine:
 
     ```bash
@@ -92,7 +97,7 @@ On jenkins server:
 1. Go to Jenkins server, create new item.
    - Item name: sameem-spapp-job1-ci-test
    - Project Type: freestyle project
-     - Discard old builds: 5
+     - Discard old builds: Max 5
      - SCM: Git
        - Repository URL: add ssh url.
        - Add credentials:
@@ -107,7 +112,7 @@ On jenkins server:
              - Enter directly:
                - Paste the private key in the box
        - Credentials: Select your key now, red should disappear if key matches url.
-     - branches to build: `*/dev`
+       - branches to build: `*/dev`
      - build triggers: `GitHub hook trigger for GITScm polling`, enables webhook on jenkins end.
      - build environment:
        - `provide node & npm bin/ folder to PATH`
@@ -132,24 +137,26 @@ On jenkins server:
 - Go to Jenkins server, create new item.
   - Item name: sameem-spapp-job2-ci-merge
   - Project Type: freestyle project
-    - Discard old builds: 5
+    - Discard old builds: Max 5
     - SCM: Git
       - Repository URL: add ssh url.
       - Credentials: Select your private key
-    - branches to build: `*/dev`
+      - branches to build: `*/dev`
+      - Additional behaviours:
+        - Merge before build:
+          - Name of repository: origin
+          - branch to merge to: main
+          - merge strategy: default
+          - fast-forward mode: --ff
     - build environment:
       - SSH Agent:
         - Credentials: Choose your private key
-    - add build step:
-      - execute shell:
-
-        ```bash
-        git checkout main
-        git pull origin main
-        git merge --ff-only origin/dev
-        git push origin main
-        ```
-
+    - post-build actions:
+      - git publisher
+        - add branch
+          - push only if build succeeds
+          - branch to push: main
+          - target remote name: origin
     - `save`
     - `Build Now`
 
@@ -159,3 +166,47 @@ On jenkins server:
 - If both jobs successfully run, should see your change in GitHub main branch.
 
 ### Job3 on Jenkins Server: CD - Configuration
+
+- task of job3 is to `scp` the app folder from our jenkins server to the production ec2 server, ssh into the instance and run the app.
+- the productions server should have all the dependencies required for the app e.g. pm2, nginx etc. Only the app code itself should not be on there, as it is important the code that gets pushed to production is the code tested by our CI pipeline.
+- on EC2 security group, ensure ssh is set to allow any so that Jenkins server can ssh into the instance.
+- also need to ensure for ssh agent we add a new private key which is the key used to ssh into our aws production instance.
+
+- test change to be made is in the app homepage in:
+
+    ```bash
+    `nano app/views/index.esj`
+    ```
+
+- Pushing the changes to github should trigger our pipeline, in the order of: job1 -> job2 -> job3.
+
+- Go to Jenkins server, create new item.
+  - Item name: sameem-spapp-job3-cd-deploy
+  - Project Type: freestyle project
+    - Discard old builds: Max 5
+    - build environment:
+      - SSH Agent:
+        - Credentials: Choose your **aws** private key
+    - add build step:
+      - execute shell:
+
+        ```bash
+        scp -o StrictHostKeyChecking=no -r /var/jenkins/workspace/sameem-spapp-job1-ci-test/app/ ubuntu@<ec2_public_ip>:~
+        ssh ubuntu@<ec2_public_ip><<'EOF'
+        cd ~/app
+        npm install
+        pm2 restart app || pm2 start app.js --name "app"
+        EOF
+        ```
+
+    - `save`
+    - `Build Now`
+
+- This job should only run if the merging from job2 has succeeded.
+- Therefore, go back to job2 configuration and add job3 as a `post build actions` -> `build other projects`. Tick the box to only run if stable build.
+- Final test for the pipeline will be to make the homepage change in dev branch and push to GitHub. It should trigger the full cicd pipeline now i.e. test the code, merge to main and deploy to our production ec2.
+- If the pipeline successfully runs, your change should be shown on the app homepage when you access using the public IP.
+
+#### Add db support for the deployment
+
+- Currently db posts page is not working, so will need to add support for this in our execute shell for job3 e.g. add the connection string via export.
