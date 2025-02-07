@@ -135,16 +135,16 @@ On jenkins server:
       - Repository URL: add ssh url.
       - Credentials: Select your private key
     - branches to build: `*/dev`
-    - build triggers: `GitHub hook trigger for GITScm polling`
     - build environment:
       - SSH Agent:
         - Credentials: Choose your private key
     - add build step:
       - execute shell:
              ```bash
-             cd app
-             npm install
-             npm test
+            git checkout main
+            git pull origin main
+            git merge --ff-only origin/dev
+            git push origin main
              ```
     - `save`
     - `Build Now`
