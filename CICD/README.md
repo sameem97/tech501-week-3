@@ -109,16 +109,18 @@ On jenkins server:
        - Credentials: Select your key now, red should disappear if key matches url.
      - branches to build: `*/dev`
      - build triggers: `GitHub hook trigger for GITScm polling`, enables webhook on jenkins end.
-     - build environment: 
+     - build environment:
        - `provide node & npm bin/ folder to PATH`
          - NodeJS Installation: NodeJS version 20, required for our app
      - add build step:
-       - execute script:
-              ```bash
-              cd app
-              npm install
-              npm test
-              ```
+       - execute shell:
+
+            ```bash
+            cd app
+            npm install
+            npm test
+            ```
+
      - `save`
      - `Build Now`
 
@@ -140,12 +142,14 @@ On jenkins server:
         - Credentials: Choose your private key
     - add build step:
       - execute shell:
-             ```bash
-            git checkout main
-            git pull origin main
-            git merge --ff-only origin/dev
-            git push origin main
-             ```
+
+        ```bash
+        git checkout main
+        git pull origin main
+        git merge --ff-only origin/dev
+        git push origin main
+        ```
+
     - `save`
     - `Build Now`
 
