@@ -193,9 +193,11 @@ On jenkins server:
         ```bash
         scp -o StrictHostKeyChecking=no -r /var/jenkins/workspace/sameem-spapp-job1-ci-test/app/ ubuntu@<ec2_public_ip>:~
         ssh ubuntu@<ec2_public_ip><<'EOF'
-        cd ~/app
-        npm install
-        pm2 restart app || pm2 start app.js --name "app"
+            cd ~/app
+            export DB_HOST=http://<db_private_ip>/posts
+            npm install
+            pm2 restart app || pm2 start app.js --name "app"
+            pm2 save
         EOF
         ```
 
@@ -206,7 +208,5 @@ On jenkins server:
 - Therefore, go back to job2 configuration and add job3 as a `post build actions` -> `build other projects`. Tick the box to only run if stable build.
 - Final test for the pipeline will be to make the homepage change in dev branch and push to GitHub. It should trigger the full cicd pipeline now i.e. test the code, merge to main and deploy to our production ec2.
 - If the pipeline successfully runs, your change should be shown on the app homepage when you access using the public IP.
-
-#### Add db support for the deployment
-
-- Currently db posts page is not working, so will need to add support for this in our execute shell for job3 e.g. add the connection string via export.
+- Additional test to check if posts page is working. Need to ensure the db private IP is as specified in the export command above.
+- Also note, in AWS public IPs if they are not elastic, will change upon deallocation (stopping the VM). If this happens, need to update the ec2 public IP in the scp and ssh commands above. This change in IP does **not** happen upon vm reboot.
