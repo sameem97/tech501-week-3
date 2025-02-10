@@ -142,7 +142,7 @@ On jenkins server:
       - Repository URL: add ssh url.
       - Credentials: Select your private key
       - branches to build: `*/dev`
-      - Additional behaviours:
+      - Additional behaviours (merge dev to main on jenkins server):
         - Merge before build:
           - Name of repository: origin
           - branch to merge to: main
@@ -152,7 +152,7 @@ On jenkins server:
       - SSH Agent:
         - Credentials: Choose your private key
     - post-build actions:
-      - git publisher
+      - git publisher (push updated main branch on jenkins server to github)
         - add branch
           - push only if build succeeds
           - branch to push: main
@@ -193,7 +193,7 @@ On jenkins server:
         ```bash
         scp -o StrictHostKeyChecking=no -r /var/jenkins/workspace/sameem-spapp-job1-ci-test/app/ ubuntu@<ec2_public_ip>:~
         ssh ubuntu@<ec2_public_ip><<'EOF'
-            cd ~/app
+            cd app
             export DB_HOST=http://<db_private_ip>/posts
             npm install
             pm2 restart app || pm2 start app.js --name "app"
