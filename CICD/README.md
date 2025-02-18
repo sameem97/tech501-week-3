@@ -194,7 +194,7 @@ On jenkins server:
         scp -o StrictHostKeyChecking=no -r /var/jenkins/workspace/sameem-spapp-job1-ci-test/app/ ubuntu@<ec2_public_ip>:~
         ssh ubuntu@<ec2_public_ip><<'EOF'
             cd app
-            export DB_HOST=http://<db_private_ip>/posts
+            export DB_HOST="mongodb://<db_private_ip>:27017/posts"
             npm install
             pm2 restart app || pm2 start app.js --name "app"
             pm2 save
